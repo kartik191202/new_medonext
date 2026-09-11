@@ -2,27 +2,15 @@
 
 import { useState } from "react";
 import { useFieldArray } from "react-hook-form";
-import DataTable, { type DataTableColumn } from "@/components/data-table/DataTable";
+import InvestigationGrid from "./InvestigationGrid";
 import SectionCard from "../SectionCard";
 import { INVESTIGATIONS, type Investigation } from "@/lib/data/hospitalData";
 import { inputClasses } from "../inputStyles";
 import type { SectionProps } from "@/types/patient-registration";
 
-const investigationColumns: DataTableColumn<Investigation>[] = [
-  {
-    id: "investigation",
-    header: "Investigation",
-    accessor: (item) => (
-      <div>
-        <p className="font-medium text-slate-800">{item.name}</p>
-        <p className="mt-0.5 text-xs text-slate-400">{item.code}</p>
-      </div>
-    ),
-  },
-  { id: "category", header: "Category", accessor: (item) => item.category },
-  { id: "turnaround", header: "TAT", accessor: (item) => item.turnaroundTime },
+/*
   { id: "fee", header: "Fee", accessor: (item) => `₹${item.fee.toFixed(2)}`, className: "text-right" },
-];
+*/
 
 export default function InvestigationAssignmentSection({ control, register }: SectionProps) {
   const { fields, append, remove, move } = useFieldArray({ control, name: "investigations" });
@@ -54,15 +42,12 @@ export default function InvestigationAssignmentSection({ control, register }: Se
       badge={<span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">{fields.length} assigned</span>}
     >
       <p className="mb-3 text-xs text-slate-500">Select one or more investigations to assign to this patient. Search by name, code, or category.</p>
-      <DataTable
+      <InvestigationGrid
         data={INVESTIGATIONS}
-        columns={investigationColumns}
-        getRowId={(item) => item.code}
-        selectable
-        selectedRowIds={selectedCodes}
+        selectedCodes={selectedCodes}
         onSelectionChange={handleSelectionChange}
         searchPlaceholder="Search investigations…"
-        searchText={(item) => `${item.code} ${item.name} ${item.category}`}
+        searchText={(item: Investigation) => `${item.code} ${item.name} ${item.category}`}
         emptyMessage="No investigations match your search."
       />
 
