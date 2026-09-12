@@ -1,19 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AgGridReact } from "ag-grid-react";
 import type { ColDef, GridApi, GridReadyEvent, RowDragEndEvent, SelectionChangedEvent } from "ag-grid-community";
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from "ag-grid-community";
 
+import DynamicGrid from "@/components/data-table/DynamicGrid";
 import type { Investigation } from "@/lib/data/hospitalData";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 type InvestigationGridProps = {
-  [key: string]: unknown;
   data: Investigation[];
   selectedCodes: string[];
   onSelectionChange: (codes: string[]) => void;
+  searchPlaceholder?: string;
+  searchText?: (item: Investigation) => string;
+  emptyMessage?: string;
 };
 
 const hmsTheme = themeQuartz.withParams({
@@ -35,7 +37,6 @@ const hmsTheme = themeQuartz.withParams({
 export default function InvestigationGrid({ data, selectedCodes, onSelectionChange }: InvestigationGridProps) {
   const [query, setQuery] = useState("");
   const [shownCount, setShownCount] = useState(data.length);
-  const [rowOrder, setRowOrder] = useState(data);
   const gridApi = useRef<GridApi<Investigation> | null>(null);
   const syncingSelection = useRef(false);
 
@@ -45,28 +46,57 @@ export default function InvestigationGrid({ data, selectedCodes, onSelectionChan
         field: "name",
         headerName: "Investigation",
         rowDrag: true,
+        suppressColumnsToolPanel: true,
+        hide: false,
         flex: 2,
         minWidth: 260,
         cellRenderer: (params: { data: Investigation }) => (
           <div className="py-1">
-            <p className="font-medium text-slate-800">{params.data.name}</p>
-            <p className="mt-0.5 text-xs text-slate-400">{params.data.code}</p>
+            <p className="font-medium text-slate-800">
+              {params.data.name}
+            </p>
+            <p className="mt-0.5 text-xs text-slate-400">
+              {params.data.code}
+            </p>
           </div>
         ),
       },
-      { field: "category", headerName: "Category", flex: 1, minWidth: 130 },
-      { field: "turnaroundTime", headerName: "TAT", width: 110 },
+      {
+        field: "category",
+        headerName: "Category",
+        suppressColumnsToolPanel: true,
+        hide: false,
+        flex: 1,
+        minWidth: 130,
+      },
+      {
+        field: "turnaroundTime",
+        headerName: "TAT",
+        suppressColumnsToolPanel: true,
+        hide: false,
+        width: 110,
+      },
       {
         field: "fee",
         headerName: "Fee",
+        suppressColumnsToolPanel: true,
+        hide: false,
         width: 110,
         type: "numericColumn",
-        valueFormatter: (params) => `₹${Number(params.value).toFixed(2)}`,
+        valueFormatter: (params) =>
+          `₹${Number(params.value).toFixed(2)}`,
       },
     ],
     []
   );
-
+  const rowSelection = useMemo(
+    () => ({
+      mode: "multiRow" as const,
+      checkboxes: true,
+      headerCheckbox: true,
+    }),
+    []
+  );
   useEffect(() => {
     if (!gridApi.current) return;
     syncingSelection.current = true;
@@ -89,11 +119,19 @@ export default function InvestigationGrid({ data, selectedCodes, onSelectionChan
 
   const handleRowDragEnd = (event: RowDragEndEvent<Investigation>) => {
     const nextOrder: Investigation[] = [];
+
+
+
+
     event.api.forEachNode((node) => {
-      if (node.data) nextOrder.push(node.data);
+      if (node.data) {
+        nextOrder.push(node.data);
+      }
     });
-    setRowOrder(nextOrder);
+
+    event.api.setGridOption("rowData", nextOrder);
   };
+
 
   return (
     <div className="overflow-hidden rounded-md border border-slate-200">
@@ -112,21 +150,26 @@ export default function InvestigationGrid({ data, selectedCodes, onSelectionChan
         </label>
       </div>
       <div className="hms-investigation-grid h-[280px] w-full">
-        <AgGridReact<Investigation>
-           theme={hmsTheme}
-          rowData={rowOrder}
+        <DynamicGrid<Investigation>
+          theme={hmsTheme}
+          data={data}
           columnDefs={columnDefs}
-          defaultColDef={{ sortable: true, resizable: true, suppressHeaderMenuButton: true }}
-          rowSelection={{ mode: "multiRow", checkboxes: true, headerCheckbox: true }}
+          rowSelection={rowSelection}
           getRowId={(params) => params.data.code}
           quickFilterText={query}
+
           rowDragManaged
           rowDragEntireRow
+
+          suppressDragLeaveHidesColumns={true}
+
           animateRows
           onGridReady={handleGridReady}
           onSelectionChanged={handleSelectionChanged}
           onRowDragEnd={handleRowDragEnd}
-          onModelUpdated={(event) => setShownCount(event.api.getDisplayedRowCount())}
+          onModelUpdated={(event) =>
+            setShownCount(event.api.getDisplayedRowCount())
+          }
           overlayNoRowsTemplate="No investigations match your search."
         />
       </div>

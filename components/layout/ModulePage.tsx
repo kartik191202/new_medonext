@@ -1,4 +1,6 @@
 import type { ModuleConfig } from "@/lib/data/prototypeModules";
+import DynamicGrid from "@/components/data-table/DynamicGrid";
+import type { ColDef } from "ag-grid-community";
 
 const toneClasses: Record<NonNullable<import("@/lib/data/prototypeModules").StatCard["tone"]>, string> = {
   default: "text-slate-800",
@@ -7,7 +9,23 @@ const toneClasses: Record<NonNullable<import("@/lib/data/prototypeModules").Stat
   danger: "text-rose-600",
 };
 
-export default function ModulePage({ config }: { config: ModuleConfig }) {
+export default function ModulePage({
+  config,
+  useGrid = false,
+  enableRowDrag = false,
+}: {
+  config: ModuleConfig;
+  useGrid?: boolean;
+  enableRowDrag?: boolean;
+}) {
+  const gridColumnDefs: ColDef<Record<string, string>>[] = config.columns.map((column, index) => ({
+    field: column.key,
+    headerName: column.label,
+    minWidth: 140,
+    flex: 1,
+    ...(enableRowDrag && index === 0 ? { rowDrag: true } : {}),
+  }));
+
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-6 sm:px-8">
       <div className="mx-auto max-w-6xl">
@@ -36,32 +54,45 @@ export default function ModulePage({ config }: { config: ModuleConfig }) {
         </div>
 
         <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-                <tr>
-                  {config.columns.map((col) => (
-                    <th key={col.key} className="whitespace-nowrap px-4 py-2.5 font-medium">
-                      {col.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {config.rows.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50">
+          {useGrid ? (
+            <div className="h-[360px] w-full">
+              <DynamicGrid<Record<string, string>>
+                data={config.rows}
+                columnDefs={gridColumnDefs}
+                rowDragManaged={enableRowDrag}
+                rowDragEntireRow={enableRowDrag}
+              />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                  <tr>
                     {config.columns.map((col) => (
-                      <td key={col.key} className="whitespace-nowrap px-4 py-2.5 text-slate-700">
-                        {row[col.key]}
-                      </td>
+                      <th key={col.key} className="whitespace-nowrap px-4 py-2.5 font-medium">
+                        {col.label}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {config.rows.map((row, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50">
+                      {config.columns.map((col) => (
+                        <td key={col.key} className="whitespace-nowrap px-4 py-2.5 text-slate-700">
+                          {row[col.key]}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
           <p className="border-t border-slate-100 px-4 py-2.5 text-[11px] text-slate-400">
-            Prototype view — showing sample data. Wire this table up to your API to make it live.
+            {useGrid
+              ? "Dynamic grid view — sortable and resizable columns."
+              : "Prototype view — showing sample data. Wire this table up to your API to make it live."}
           </p>
         </section>
       </div>
